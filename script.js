@@ -8,11 +8,96 @@ var laserLine = document.getElementById('laser-line');
 
 var laserAngle = 0;
 var laserPosition = {x: 700, y: 400};
+var isLaserSpinning = true;
 var isDraggingLaser = false;
 
 var mirrors = [];
 
 var nextSweptAreaGradientId = 1;
+
+var heatmap = document.getElementById('heatmap');
+var heatmapCanvasContext = heatmap.getContext('2d');
+
+var pixelImage = heatmapCanvasContext.createImageData(1,1);
+var pixelImageData = pixelImage.data;
+
+function setPixelOnCanvas(context, x, y, color) {
+  pixelImageData[0] = color.r;
+  pixelImageData[1] = color.g;
+  pixelImageData[2] = color.b;
+  pixelImageData[3] = color.a;
+  context.putImageData(pixelImage, x, y);
+}
+
+setPixelOnCanvas(heatmapCanvasContext, 10, 10, {r: 255, g: 0, b: 0, a: 255});
+
+var heatmapResolutionX = parseInt(heatmap.getAttribute('width'));
+var heatmapResolutionY = parseInt(heatmap.getAttribute('height'));
+
+function updateHeatmap() {
+  
+  var separationAngleThreshold = Math.PI / 8;
+  
+  for (var y=0; y<heatmapResolutionY; y++) {
+    for (var x=0; x<heatmapResolutionX; x++) {
+      var worldPosition = {
+        x: (x / heatmapResolutionX) * document.body.clientWidth,
+        y: (y / heatmapResolutionY) * document.body.clientHeight,
+      }
+      
+      var value = 0;
+      
+      var vectorToLaser = normalized(subtract(worldPosition, laserPosition));
+      
+      var mirrorsInRange = mirrors.filter(function(mirror) {
+        if (!whichSideOfLine(mirror, worldPosition)) {
+          return false;
+        }
+        if (whichSideOfLine({start: mirror.reflectedLaserOrigin, end: mirror.start}, worldPosition)) {
+          return false;
+        }
+        if (!whichSideOfLine({start: mirror.reflectedLaserOrigin, end: mirror.end}, worldPosition)) {
+          return false;
+        }
+        return true;
+      });
+      
+      var laserOrigins = [laserPosition];
+      mirrorsInRange.forEach(function(mirror) {
+        laserOrigins.push(mirror.reflectedLaserOrigin);
+      });
+      
+      var bestScore = null;
+      
+      laserOrigins.forEach(function(laserOrigin1) {
+        laserOrigins.forEach(function(laserOrigin2) {
+          if (laserOrigin1 === laserOrigin2) {
+            return;
+          }
+          var vectorToOrigin1 = subtract(worldPosition, laserOrigin1);
+          var vectorToOrigin2 = subtract(worldPosition, laserOrigin2);
+          
+          var angleBetweenOrigins = Math.acos(dotProduct(normalized(vectorToOrigin1), normalized(vectorToOrigin2)));
+          
+          var score = angleBetweenOrigins;
+          if (score > (Math.PI / 2)) { // 90 degrees
+            score = Math.PI - score;
+          }
+          
+          if (!bestScore || (score > bestScore)) {
+            bestScore = score;
+          }
+        });
+      });
+      
+      setPixelOnCanvas(heatmapCanvasContext, x, y, {r: 255, g: 0, b: 0, a: 200 * (bestScore / Math.PI)});
+    }
+  }
+}
+
+window.addEventListener('resize', function() {
+  updateHeatmap();
+});
 
 function createMirror(start, end) {
   var mirror = {};
@@ -20,6 +105,11 @@ function createMirror(start, end) {
   mirror.lineElement = document.createElementNS(svgNS, 'line');
   mirror.lineElement.setAttributeNS(null, 'class', 'mirror');
   baseLayer.appendChild(mirror.lineElement);
+  
+  mirror.reflectedLaserOriginElement = document.createElementNS(svgNS, 'circle');
+  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'class', 'reflected-laser-origin');
+  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'r', '5');
+  baseLayer.appendChild(mirror.reflectedLaserOriginElement);
   
   mirror.handleStart = document.createElementNS(svgNS, 'circle');
   mirror.handleStart.setAttributeNS(null, 'class', 'mirror-handle');
@@ -33,6 +123,7 @@ function createMirror(start, end) {
   
   function startHandleDragged(event) {
     mirror.update({x: event.clientX, y: event.clientY}, mirror.end);
+    updateHeatmap();
   }
   mirror.handleStart.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', startHandleDragged);
@@ -45,6 +136,7 @@ function createMirror(start, end) {
   
   function endHandleDragged(event) {
     mirror.update(mirror.start, {x: event.clientX, y: event.clientY});
+    updateHeatmap();
   }
   mirror.handleEnd.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', endHandleDragged);
@@ -93,6 +185,9 @@ function createMirror(start, end) {
     
     var closestPoint = closestPointOnLine(mirror, laserPosition);
     var reflectedLaserOrigin = add(closestPoint, subtract(closestPoint, laserPosition));
+    mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cx', reflectedLaserOrigin.x);
+    mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cy', reflectedLaserOrigin.y);
+    mirror.reflectedLaserOrigin = reflectedLaserOrigin;
     var sweepExtent = 1100;
     var sweptAreaPoint1 = add(reflectedLaserOrigin, multiply(normalized(subtract(mirror.start, reflectedLaserOrigin)), sweepExtent));
     var sweptAreaPoint2 = add(reflectedLaserOrigin, multiply(normalized(subtract(mirror.end, reflectedLaserOrigin)), sweepExtent));
@@ -116,7 +211,33 @@ function createMirror(start, end) {
 
 createMirror({x: 100, y: 400}, {x: 500, y: 100});
 createMirror({x: 1100, y: 100}, {x: 1500, y: 400});
-createMirror({x: 500, y: 100}, {x: 1100, y: 100});
+// createMirror({x: 500, y: 100}, {x: 1100, y: 100});
+
+updateHeatmap();
+
+var coverageToggle = document.getElementById('coverage-toggle');
+coverageToggle.addEventListener('click', function() {
+  mirrors.forEach(function(mirror) {
+    mirror.sweptArea.classList.toggle('hidden');
+  });
+});
+
+var heatmapToggle = document.getElementById('heatmap-toggle');
+heatmapToggle.addEventListener('click', function() {
+  heatmap.classList.toggle('hidden');
+});
+
+var laserSpinToggle = document.getElementById('laser-spin-toggle');
+laserSpinToggle.addEventListener('click', function() {
+  isLaserSpinning = !isLaserSpinning;
+});
+
+var reflectedLaserOriginsToggle = document.getElementById('reflected-laser-origins-toggle');
+reflectedLaserOriginsToggle.addEventListener('click', function() {
+  mirrors.forEach(function(mirror) {
+    mirror.reflectedLaserOriginElement.classList.toggle('hidden');
+  });
+});
 
 function laserSourceDragged(event) {
   laserPosition = {x: event.clientX, y: event.clientY};
@@ -125,6 +246,7 @@ function laserSourceDragged(event) {
   mirrors.forEach(function(mirror) {
     mirror.update(mirror.start, mirror.end);
   });
+  updateHeatmap();
 }
 laserSource.addEventListener('mousedown', function() {
   window.addEventListener('mousemove', laserSourceDragged);
@@ -226,7 +348,7 @@ function findNextLaserPoint(currentPoint) {
 var lastTimestamp = null;
 
 function updateFrame(timestamp) {
-  if (!isDraggingLaser && lastTimestamp) {
+  if (!isDraggingLaser && lastTimestamp && isLaserSpinning) {
     var timeDelta = timestamp - lastTimestamp;
     laserAngle += timeDelta * 0.001;
   }

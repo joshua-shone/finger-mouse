@@ -15,6 +15,10 @@ svg {
   fill: red;
 }
 
+.reflected-laser-origin {
+  fill: rgba(255, 0, 0, 0.5);
+}
+
 .laser-line {
   stroke: red;
   stroke-width: 1px;
@@ -38,7 +42,6 @@ svg {
 }
 
 .swept-area {
-/*   fill: rgba(0, 70, 204, 0.24); */
   stroke: none;
   pointer-events: none;
 }
@@ -49,4 +52,30 @@ svg {
 
 .debug-point {
   fill: rgba(0, 255, 0, 0.5);
+}
+
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.toolbox {
+  position: fixed;
+  left: 0;
+  top: 0;
+  margin: 10px;
+}
+
+.toolbox-item {
+  padding: 5px;
+  margin-top: 5px;
+  background-color: #ddd;
+}
+
+.hidden {
+  display: none;
 }

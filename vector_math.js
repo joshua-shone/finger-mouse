@@ -53,6 +53,11 @@ function normalized(vector) {
   }
 }
 
+function whichSideOfLine(line, point) {
+  var determinate = (line.end.x - line.start.x) * (point.y - line.start.y) - (line.end.y - line.start.y) * (point.x - line.start.x);
+  return determinate > 0;
+}
+
 function reflect(incident, normal) {
   return subtract(incident, multiply(normal, dotProduct(incident, normal) * 2));
 }
