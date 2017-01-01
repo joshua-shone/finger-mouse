@@ -7,7 +7,7 @@ var laserSource = document.getElementsByClassName('laser-source')[0];
 var laserLine = document.getElementById('laser-line');
 
 var laserAngle = 0;
-var laserPosition = {x: 700, y: 400};
+var laserPosition = {x: 500, y: 400};
 var isLaserSpinning = true;
 var isDraggingLaser = false;
 
@@ -35,6 +35,10 @@ var heatmapResolutionX = parseInt(heatmap.getAttribute('width'));
 var heatmapResolutionY = parseInt(heatmap.getAttribute('height'));
 
 function updateHeatmap() {
+  
+  if (heatmap.classList.contains('hidden')) {
+    return;
+  }
   
   var separationAngleThreshold = Math.PI / 8;
   
@@ -124,6 +128,7 @@ function createMirror(start, end) {
   function startHandleDragged(event) {
     mirror.update({x: event.clientX, y: event.clientY}, mirror.end);
     updateHeatmap();
+    updateLaserLine();
   }
   mirror.handleStart.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', startHandleDragged);
@@ -137,6 +142,7 @@ function createMirror(start, end) {
   function endHandleDragged(event) {
     mirror.update(mirror.start, {x: event.clientX, y: event.clientY});
     updateHeatmap();
+    updateLaserLine();
   }
   mirror.handleEnd.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', endHandleDragged);
@@ -209,8 +215,8 @@ function createMirror(start, end) {
   mirrors.push(mirror);
 }
 
-createMirror({x: 100, y: 400}, {x: 500, y: 100});
-createMirror({x: 1100, y: 100}, {x: 1500, y: 400});
+createMirror({x: 600, y: 200}, {x: 1700, y: 600});
+// createMirror({x: 1100, y: 100}, {x: 1500, y: 400});
 // createMirror({x: 500, y: 100}, {x: 1100, y: 100});
 
 updateHeatmap();
@@ -225,6 +231,7 @@ coverageToggle.addEventListener('click', function() {
 var heatmapToggle = document.getElementById('heatmap-toggle');
 heatmapToggle.addEventListener('click', function() {
   heatmap.classList.toggle('hidden');
+  updateHeatmap();
 });
 
 var laserSpinToggle = document.getElementById('laser-spin-toggle');
@@ -247,6 +254,7 @@ function laserSourceDragged(event) {
     mirror.update(mirror.start, mirror.end);
   });
   updateHeatmap();
+  updateLaserLine();
 }
 laserSource.addEventListener('mousedown', function() {
   window.addEventListener('mousemove', laserSourceDragged);
@@ -266,20 +274,16 @@ function addDebugPoint(position, radius) {
   baseLayer.appendChild(debugPoint);
 }
 
-mirrors.forEach(function(mirror) {
-
-});
-
-function updateLaserLine() {
+function generateLaserPath(position, angle) {
   
   var radius = 800;
   var laserVector = {
-    x: Math.sin(laserAngle),
-    y: Math.cos(laserAngle),
+    x: Math.sin(angle),
+    y: Math.cos(angle),
   }
   
   var laserPoints = [{
-    position: laserPosition,
+    position: position,
     vector: laserVector,
     mirror: null,
   }]
@@ -295,20 +299,34 @@ function updateLaserLine() {
     mirror.lineElement.classList.remove('hit');
   });
   
-  var pathString = 'M ';
-  var firstPoint = true;
+  var pathString = '';
   laserPoints.forEach(function(laserPoint) {
     pathString += laserPoint.position.x + ',' + laserPoint.position.y + ' '
-    if (firstPoint) {
-      pathString += 'L ';
-      firstPoint = false;
-    }
     if (laserPoint.mirror) {
       laserPoint.mirror.lineElement.classList.add('hit');
     }
   });
   
-  laserLine.setAttributeNS(null, 'd', pathString);
+  return pathString;
+}
+
+var multiLaserLines = [];
+var multiLaserLineCount = 1600;
+for (var i=0; i<multiLaserLineCount; i++) {
+  var multiLaserLine = document.createElementNS(svgNS, 'polyline');
+  multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
+  svg.appendChild(multiLaserLine);
+  multiLaserLines.push(multiLaserLine);
+}
+
+function updateLaserLine() {
+  var pathString = generateLaserPath(laserPosition, laserAngle);
+  laserLine.setAttributeNS(null, 'points', pathString);
+  
+  multiLaserLines.forEach(function(multiLaserLine, index) {
+    var multiPathString = generateLaserPath(laserPosition, (Math.PI * 2) * (index / multiLaserLineCount));
+    multiLaserLine.setAttributeNS(null, 'points', multiPathString);
+  });
 }
 
 function findNextLaserPoint(currentPoint) {
@@ -353,7 +371,9 @@ function updateFrame(timestamp) {
     laserAngle += timeDelta * 0.001;
   }
   
-  updateLaserLine();
+  if (isLaserSpinning) {
+    updateLaserLine();
+  }
   
   lastTimestamp = timestamp;
   window.requestAnimationFrame(updateFrame);
@@ -378,6 +398,7 @@ window.addEventListener('mouseup', function() {
 window.addEventListener('mousemove', function(event) {
   if (isDraggingLaser) {
     laserAngle = Math.atan2(event.clientY - laserPosition.y, -(event.clientX - laserPosition.x)) - (Math.PI / 2);
+    updateLaserLine();
   }
 });
 
