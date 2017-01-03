@@ -7,8 +7,8 @@ var laserSource = document.getElementsByClassName('laser-source')[0];
 var laserLine = document.getElementById('laser-line');
 
 var laserAngle = 0;
-var laserPosition = {x: 500, y: 400};
-var isLaserSpinning = true;
+var laserPosition = {x: 455, y: 600};
+var isLaserSpinning = false;
 var isDraggingLaser = false;
 
 var mirrors = [];
@@ -129,6 +129,7 @@ function createMirror(start, end) {
     mirror.update({x: event.clientX, y: event.clientY}, mirror.end);
     updateHeatmap();
     updateLaserLine();
+    updateMultiLaserLines();
   }
   mirror.handleStart.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', startHandleDragged);
@@ -143,6 +144,7 @@ function createMirror(start, end) {
     mirror.update(mirror.start, {x: event.clientX, y: event.clientY});
     updateHeatmap();
     updateLaserLine();
+    updateMultiLaserLines();
   }
   mirror.handleEnd.addEventListener('mousedown', function() {
     window.addEventListener('mousemove', endHandleDragged);
@@ -216,33 +218,64 @@ function createMirror(start, end) {
 }
 
 createMirror({x: 600, y: 200}, {x: 1700, y: 600});
-// createMirror({x: 1100, y: 100}, {x: 1500, y: 400});
-// createMirror({x: 500, y: 100}, {x: 1100, y: 100});
 
 updateHeatmap();
 
+var isDisplayingCoverage = true;
 var coverageToggle = document.getElementById('coverage-toggle');
+coverageToggle.classList.add('on');
 coverageToggle.addEventListener('click', function() {
+  isDisplayingCoverage = !isDisplayingCoverage;
+  coverageToggle.classList.toggle('on',   isDisplayingCoverage);
+  coverageToggle.classList.toggle('off', !isDisplayingCoverage);
   mirrors.forEach(function(mirror) {
-    mirror.sweptArea.classList.toggle('hidden');
+    mirror.sweptArea.classList.toggle('hidden', !isDisplayingCoverage);
   });
 });
 
+var isDisplayingHeatmap = false;
 var heatmapToggle = document.getElementById('heatmap-toggle');
+heatmapToggle.classList.add('off');
 heatmapToggle.addEventListener('click', function() {
-  heatmap.classList.toggle('hidden');
+  isDisplayingHeatmap = !isDisplayingHeatmap;
+  heatmapToggle.classList.toggle('on',   isDisplayingHeatmap);
+  heatmapToggle.classList.toggle('off', !isDisplayingHeatmap);
+  heatmap.classList.toggle('hidden', !isDisplayingHeatmap);
   updateHeatmap();
 });
 
 var laserSpinToggle = document.getElementById('laser-spin-toggle');
+laserSpinToggle.classList.add('off');
 laserSpinToggle.addEventListener('click', function() {
   isLaserSpinning = !isLaserSpinning;
+  laserSpinToggle.classList.toggle('on',   isLaserSpinning);
+  laserSpinToggle.classList.toggle('off', !isLaserSpinning);
 });
 
+var isDisplayingReflectedLaserOrigins = true;
 var reflectedLaserOriginsToggle = document.getElementById('reflected-laser-origins-toggle');
+reflectedLaserOriginsToggle.classList.add('on');
 reflectedLaserOriginsToggle.addEventListener('click', function() {
+  isDisplayingReflectedLaserOrigins = !isDisplayingReflectedLaserOrigins;
+  reflectedLaserOriginsToggle.classList.toggle('on',   isDisplayingReflectedLaserOrigins);
+  reflectedLaserOriginsToggle.classList.toggle('off', !isDisplayingReflectedLaserOrigins);
   mirrors.forEach(function(mirror) {
-    mirror.reflectedLaserOriginElement.classList.toggle('hidden');
+    mirror.reflectedLaserOriginElement.classList.toggle('hidden', !isDisplayingReflectedLaserOrigins);
+  });
+});
+
+var isDisplayingMultiLaserLines = false;
+var multiLaserLinesToggle = document.getElementById('multi-laser-lines-toggle');
+multiLaserLinesToggle.classList.add('off');
+multiLaserLinesToggle.addEventListener('click', function() {
+  isDisplayingMultiLaserLines = !isDisplayingMultiLaserLines;
+  multiLaserLinesToggle.classList.toggle('on',   isDisplayingMultiLaserLines);
+  multiLaserLinesToggle.classList.toggle('off', !isDisplayingMultiLaserLines);
+  if (isDisplayingMultiLaserLines) {
+    updateMultiLaserLines();
+  }
+  multiLaserLines.forEach(function(line) {
+    line.classList.toggle('hidden', !isDisplayingMultiLaserLines);
   });
 });
 
@@ -255,6 +288,7 @@ function laserSourceDragged(event) {
   });
   updateHeatmap();
   updateLaserLine();
+  updateMultiLaserLines();
 }
 laserSource.addEventListener('mousedown', function() {
   window.addEventListener('mousemove', laserSourceDragged);
@@ -310,23 +344,29 @@ function generateLaserPath(position, angle) {
   return pathString;
 }
 
-var multiLaserLines = [];
-var multiLaserLineCount = 1600;
-for (var i=0; i<multiLaserLineCount; i++) {
-  var multiLaserLine = document.createElementNS(svgNS, 'polyline');
-  multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
-  svg.appendChild(multiLaserLine);
-  multiLaserLines.push(multiLaserLine);
-}
-
 function updateLaserLine() {
   var pathString = generateLaserPath(laserPosition, laserAngle);
   laserLine.setAttributeNS(null, 'points', pathString);
-  
-  multiLaserLines.forEach(function(multiLaserLine, index) {
-    var multiPathString = generateLaserPath(laserPosition, (Math.PI * 2) * (index / multiLaserLineCount));
-    multiLaserLine.setAttributeNS(null, 'points', multiPathString);
-  });
+}
+
+updateLaserLine();
+
+var multiLaserLines = [];
+var multiLaserLineCount = 200;
+for (var i=0; i<multiLaserLineCount; i++) {
+  var multiLaserLine = document.createElementNS(svgNS, 'polyline');
+  multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
+  baseLayer.appendChild(multiLaserLine);
+  multiLaserLines.push(multiLaserLine);
+}
+
+function updateMultiLaserLines() {
+  if (isDisplayingMultiLaserLines) {
+    multiLaserLines.forEach(function(multiLaserLine, index) {
+      var multiPathString = generateLaserPath(laserPosition, (Math.PI * 2) * (index / multiLaserLineCount));
+      multiLaserLine.setAttributeNS(null, 'points', multiPathString);
+    });
+  }
 }
 
 function findNextLaserPoint(currentPoint) {

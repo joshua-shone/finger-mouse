@@ -13,6 +13,13 @@ svg {
 
 .laser-source {
   fill: red;
+  stroke: #000;
+  stroke-width: 1px;
+  cursor: pointer;
+}
+
+.laser-source:hover {
+  fill: orange;
 }
 
 .reflected-laser-origin {
@@ -24,10 +31,7 @@ svg {
   stroke-width: 1px;
   fill: none;
   pointer-events: none;
-}
-
-.laser-hit {
-  fill: red;
+  opacity: 0.8;
 }
 
 .mirror {
@@ -37,6 +41,7 @@ svg {
 
 .mirror-handle {
   fill: green;
+  cursor: pointer;
 }
 .mirror-handle:hover {
   fill: orange;
@@ -57,8 +62,8 @@ svg {
 
 canvas {
   position: absolute;
-  left: 0;
   top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -79,4 +84,25 @@ canvas {
 
 .hidden {
   display: none;
+}
+
+.toggle {
+  border-radius: 4px;
+  border: 1px solid #999;
+  background-color: #ddd;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+}
+
+.toggle:focus {
+  outline: none;
+}
+
+.toggle.on {
+  background-color: green;
+}
+
+.toggle.off {
+  background-color: red;
 }

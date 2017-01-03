@@ -12,17 +12,18 @@
     
       <g id="base-layer"></g>
     
-      <circle class="laser-source" cx="500" cy="400" r="8"/>
-      <polyline class="laser-line" id="laser-line" d="M 700,400 L 700,0" />
+      <circle class="laser-source" cx="455" cy="600" r="8"/>
+      <polyline class="laser-line" id="laser-line"/>
     </svg>
     
-    <canvas id="heatmap" width="200" height="200"></canvas>
+    <canvas id="heatmap" class="hidden" width="200" height="200"></canvas>
     
     <div class="toolbox">
-      <button class="toolbox-item" id="coverage-toggle">Coverage</button>
-      <button class="toolbox-item" id="heatmap-toggle">Heatmap</button>
-      <button class="toolbox-item" id="laser-spin-toggle">Laser spin</button>
-      <button class="toolbox-item" id="reflected-laser-origins-toggle">Reflected laser origins</button>
+      <button class="toolbox-item toggle" id="coverage-toggle">Coverage</button>
+      <button class="toolbox-item toggle" id="heatmap-toggle">Heatmap</button>
+      <button class="toolbox-item toggle" id="laser-spin-toggle">Laser spin</button>
+      <button class="toolbox-item toggle" id="reflected-laser-origins-toggle">Reflected laser origins</button>
+      <button class="toolbox-item toggle" id="multi-laser-lines-toggle">Multiple laser lines</button>
     </div>
     
     <script src="vector_math.js"></script>
