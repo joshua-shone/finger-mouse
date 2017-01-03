@@ -62,6 +62,13 @@ function reflect(incident, normal) {
   return subtract(incident, multiply(normal, dotProduct(incident, normal) * 2));
 }
 
+function vectorAtAngle(angle) {
+  return {
+    x: Math.sin(angle),
+    y: Math.cos(angle),
+  }
+}
+
 function closestPointOnLine(line, point) {
   var lineStartToPoint = subtract(point, line.start);
   var lineVector = subtract(line.end, line.start);
