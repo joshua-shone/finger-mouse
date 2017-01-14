@@ -25,3 +25,31 @@ function setPixelOnCanvas(context, x, y, color) {
   pixelImage.data[3] = color.a;
   context.putImageData(pixelImage, x, y);
 }
+
+function setupDragging(element, callbacks) {
+  
+  var cursorBeforeDrag = null;
+  
+  function handleMousemove(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var cursorDelta = {x: event.pageX - cursorBeforeDrag.x, y: event.pageY - cursorBeforeDrag.y};
+    callbacks.move(cursorDelta);
+  }
+  
+  element.addEventListener('mousedown', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    cursorBeforeDrag = {x: event.pageX, y: event.pageY};
+    if (callbacks.start) {
+      callbacks.start(cursorBeforeDrag);
+    }
+    window.addEventListener('mousemove', handleMousemove);
+    window.addEventListener('mouseup',   handleMouseup);
+  });
+  
+  function handleMouseup(event) {
+    window.removeEventListener('mousemove', handleMousemove);
+    window.removeEventListener('mouseup',   handleMouseup);
+  }
+}

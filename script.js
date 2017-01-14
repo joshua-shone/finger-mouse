@@ -20,6 +20,8 @@ var heatmapCanvasContext = heatmap.getContext('2d');
 var heatmapResolutionX = parseInt(heatmap.getAttribute('width'));
 var heatmapResolutionY = parseInt(heatmap.getAttribute('height'));
 
+var multiLaserLineCount = 200;
+
 function updateHeatmap() {
   
   if (heatmap.classList.contains('hidden')) {
@@ -97,7 +99,7 @@ function createMirror(start, end) {
   baseLayer.appendChild(mirror.lineElement);
   
   mirror.reflectedLaserOriginElement = document.createElementNS(svgNS, 'circle');
-  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'class', 'reflected-laser-origin');
+  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'class', 'reflected-laser-origin hidden');
   mirror.reflectedLaserOriginElement.setAttributeNS(null, 'r', '5');
   baseLayer.appendChild(mirror.reflectedLaserOriginElement);
   
@@ -111,35 +113,29 @@ function createMirror(start, end) {
   mirror.handleEnd.setAttributeNS(null, 'r', '8');
   baseLayer.appendChild(mirror.handleEnd);
   
-  function startHandleDragged(event) {
-    mirror.update({x: event.clientX, y: event.clientY}, mirror.end);
-    updateHeatmap();
-    updateLaserLine();
-    updateMultiLaserLines();
-  }
-  mirror.handleStart.addEventListener('mousedown', function() {
-    window.addEventListener('mousemove', startHandleDragged);
-    window.addEventListener('mouseup', startHandleMouseup);
+  setupDragging(mirror.handleStart, {
+    start: function(cursorBeforeDrag) {
+      mirror.startBeforeDrag = mirror.start;
+    },
+    move: function(cursorDelta) {
+      mirror.update({x: mirror.startBeforeDrag.x + cursorDelta.x, y: mirror.startBeforeDrag.y + cursorDelta.y}, mirror.end);
+      updateHeatmap();
+      updateLaserLine();
+      updateMultiLaserLines();
+    }
   });
-  function startHandleMouseup(event) {
-    window.removeEventListener('mousemove', startHandleDragged);
-    window.removeEventListener('mouseup', startHandleMouseup);
-  }
   
-  function endHandleDragged(event) {
-    mirror.update(mirror.start, {x: event.clientX, y: event.clientY});
-    updateHeatmap();
-    updateLaserLine();
-    updateMultiLaserLines();
-  }
-  mirror.handleEnd.addEventListener('mousedown', function() {
-    window.addEventListener('mousemove', endHandleDragged);
-    window.addEventListener('mouseup', endHandleMouseup);
+  setupDragging(mirror.handleEnd, {
+    start: function(cursorBeforeDrag) {
+      mirror.endBeforeDrag = mirror.end;
+    },
+    move: function(cursorDelta) {
+      mirror.update(mirror.start, {x: mirror.endBeforeDrag.x + cursorDelta.x, y: mirror.endBeforeDrag.y + cursorDelta.y});
+      updateHeatmap();
+      updateLaserLine();
+      updateMultiLaserLines();
+    }
   });
-  function endHandleMouseup(event) {
-    window.removeEventListener('mousemove', endHandleDragged);
-    window.removeEventListener('mouseup', endHandleMouseup);
-  }
   
   mirror.sweepGradient = document.createElementNS(svgNS, 'radialGradient');
   mirror.sweepGradient.setAttributeNS(null, 'id', 'sweptAreaGradient' + nextSweptAreaGradientId);
@@ -147,7 +143,7 @@ function createMirror(start, end) {
   baseLayer.appendChild(mirror.sweepGradient);
   
   mirror.sweptArea = document.createElementNS(svgNS, 'path');
-  mirror.sweptArea.setAttributeNS(null, 'class', 'swept-area');
+  mirror.sweptArea.setAttributeNS(null, 'class', 'swept-area hidden');
   mirror.sweptArea.setAttributeNS(null, 'fill', 'url(#sweptAreaGradient' + nextSweptAreaGradientId + ')');
   baseLayer.appendChild(mirror.sweptArea);
   
@@ -228,11 +224,11 @@ function updateSpinningMirrors() {
 
 updateHeatmap();
 
-var isDisplayingCoverage = true;
+var isDisplayingCoverage = false;
 var coverageToggle = document.getElementById('coverage-toggle');
 coverageToggle.classList.add('on');
-coverageToggle.addEventListener('click', function() {
-  isDisplayingCoverage = !isDisplayingCoverage;
+coverageToggle.addEventListener('change', function() {
+  isDisplayingCoverage = coverageToggle.checked;
   coverageToggle.classList.toggle('on',   isDisplayingCoverage);
   coverageToggle.classList.toggle('off', !isDisplayingCoverage);
   mirrors.forEach(function(mirror) {
@@ -243,8 +239,8 @@ coverageToggle.addEventListener('click', function() {
 var isDisplayingHeatmap = false;
 var heatmapToggle = document.getElementById('heatmap-toggle');
 heatmapToggle.classList.add('off');
-heatmapToggle.addEventListener('click', function() {
-  isDisplayingHeatmap = !isDisplayingHeatmap;
+heatmapToggle.addEventListener('change', function() {
+  isDisplayingHeatmap = heatmapToggle.checked;
   heatmapToggle.classList.toggle('on',   isDisplayingHeatmap);
   heatmapToggle.classList.toggle('off', !isDisplayingHeatmap);
   heatmap.classList.toggle('hidden', !isDisplayingHeatmap);
@@ -253,8 +249,8 @@ heatmapToggle.addEventListener('click', function() {
 
 var laserSpinToggle = document.getElementById('laser-spin-toggle');
 laserSpinToggle.classList.add('off');
-laserSpinToggle.addEventListener('click', function() {
-  isLaserSpinning = !isLaserSpinning;
+laserSpinToggle.addEventListener('change', function() {
+  isLaserSpinning = laserSpinToggle.checked;
   laserSpinToggle.classList.toggle('on',   isLaserSpinning);
   laserSpinToggle.classList.toggle('off', !isLaserSpinning);
 });
@@ -262,8 +258,8 @@ laserSpinToggle.addEventListener('click', function() {
 var isDisplayingReflectedLaserOrigins = true;
 var reflectedLaserOriginsToggle = document.getElementById('reflected-laser-origins-toggle');
 reflectedLaserOriginsToggle.classList.add('on');
-reflectedLaserOriginsToggle.addEventListener('click', function() {
-  isDisplayingReflectedLaserOrigins = !isDisplayingReflectedLaserOrigins;
+reflectedLaserOriginsToggle.addEventListener('change', function() {
+  isDisplayingReflectedLaserOrigins = reflectedLaserOriginsToggle.checked;
   reflectedLaserOriginsToggle.classList.toggle('on',   isDisplayingReflectedLaserOrigins);
   reflectedLaserOriginsToggle.classList.toggle('off', !isDisplayingReflectedLaserOrigins);
   mirrors.forEach(function(mirror) {
@@ -274,8 +270,9 @@ reflectedLaserOriginsToggle.addEventListener('click', function() {
 var isDisplayingMultiLaserLines = false;
 var multiLaserLinesToggle = document.getElementById('multi-laser-lines-toggle');
 multiLaserLinesToggle.classList.add('off');
-multiLaserLinesToggle.addEventListener('click', function() {
-  isDisplayingMultiLaserLines = !isDisplayingMultiLaserLines;
+multiLaserLinesToggle.addEventListener('change', function() {
+  isDisplayingMultiLaserLines = multiLaserLinesToggle.checked;
+  multiLaserLinesSlider.set('disabled', !isDisplayingMultiLaserLines);
   multiLaserLinesToggle.classList.toggle('on',   isDisplayingMultiLaserLines);
   multiLaserLinesToggle.classList.toggle('off', !isDisplayingMultiLaserLines);
   if (isDisplayingMultiLaserLines) {
@@ -286,25 +283,30 @@ multiLaserLinesToggle.addEventListener('click', function() {
   });
 });
 
-function laserSourceDragged(event) {
-  laserPosition = {x: event.clientX, y: event.clientY};
-  laserSource.setAttributeNS(null, 'cx', event.clientX);
-  laserSource.setAttributeNS(null, 'cy', event.clientY);
-  mirrors.forEach(function(mirror) {
-    mirror.update(mirror.start, mirror.end);
-  });
-  updateHeatmap();
-  updateLaserLine();
+var multiLaserLinesSlider = document.getElementById('multi-laser-lines-slider');
+multiLaserLinesSlider.set('value', multiLaserLineCount);
+multiLaserLinesSlider.addEventListener('immediate-value-changed', function() {
+  multiLaserLineCount = multiLaserLinesSlider.immediateValue;
   updateMultiLaserLines();
-}
-laserSource.addEventListener('mousedown', function() {
-  window.addEventListener('mousemove', laserSourceDragged);
-  window.addEventListener('mouseup', laserSourceMouseup);
 });
-function laserSourceMouseup(event) {
-  window.removeEventListener('mousemove', laserSourceDragged);
-  window.removeEventListener('mouseup', laserSourceMouseup);
-}
+
+var laserSourceBeforeDrag = null;
+setupDragging(laserSource, {
+  start: function() {
+    laserSourceBeforeDrag = laserPosition;
+  },
+  move: function(cursorDelta) {
+    laserPosition = {x: laserSourceBeforeDrag.x + cursorDelta.x, y: laserSourceBeforeDrag.y + cursorDelta.y};
+    laserSource.setAttributeNS(null, 'cx', laserPosition.x);
+    laserSource.setAttributeNS(null, 'cy', laserPosition.y);
+    mirrors.forEach(function(mirror) {
+      mirror.update(mirror.start, mirror.end);
+    });
+    updateHeatmap();
+    updateLaserLine();
+    updateMultiLaserLines();
+  }
+});
 
 function generateLaserPath(position, angle) {
   
@@ -350,20 +352,29 @@ function updateLaserLine() {
 updateLaserLine();
 
 var multiLaserLines = [];
-var multiLaserLineCount = 1000;
-for (var i=0; i<multiLaserLineCount; i++) {
-  var multiLaserLine = document.createElementNS(svgNS, 'polyline');
-  multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
-  baseLayer.appendChild(multiLaserLine);
-  multiLaserLines.push(multiLaserLine);
-}
 
 function updateMultiLaserLines() {
+  
+  if (multiLaserLines.length != multiLaserLineCount) {
+    multiLaserLines.forEach(function(multiLaserLine) {
+      multiLaserLine.remove();
+    });
+    multiLaserLines = [];
+    
+    for (var i=0; i<multiLaserLineCount; i++) {
+      var multiLaserLine = document.createElementNS(svgNS, 'polyline');
+      multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
+      baseLayer.appendChild(multiLaserLine);
+      multiLaserLines.push(multiLaserLine);
+    }
+  }
+  
+  var rotationRange = Math.PI / 2;
+  
   var spinningMirrorsAngleBefore = spinningMirrorsAngle;
   if (isDisplayingMultiLaserLines) {
     multiLaserLines.forEach(function(multiLaserLine, index) {
-//       var multiPathString = generateLaserPath(laserPosition, (Math.PI * 2) * (index / multiLaserLineCount));
-      spinningMirrorsAngle = (Math.PI * 2) * (index / multiLaserLineCount);
+      spinningMirrorsAngle = rotationRange * (index / multiLaserLineCount);
       updateSpinningMirrors();
       var multiPathString = generateLaserPath(laserPosition, laserAngle);
       multiLaserLine.setAttributeNS(null, 'points', multiPathString);

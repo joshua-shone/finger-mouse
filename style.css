@@ -6,9 +6,29 @@ html, body {
   overflow: hidden;
 }
 
-svg {
-  width: 100%;
+#mainContainer {
+  overflow: hidden !important;
+  border: 4px solid #ddd;
+}
+
+.main-content {
   height: 100%;
+}
+
+svg {
+  width:  3000px;
+  height: 3000px;
+}
+
+polymer-panzoom {
+  position: absolute;
+  left:   -500px;
+  top:    -500px;
+  padding-left: 500px;
+  padding-top:  500px;
+  right:  -500px;
+  bottom: -500px;
+  overflow: hidden;
 }
 
 .laser-source {
@@ -79,7 +99,12 @@ canvas {
 .toolbox-item {
   padding: 5px;
   margin-top: 5px;
-  background-color: #ddd;
+/*   background-color: #ddd; */
+/*   display: block; */
+}
+
+.toolbox-item paper-input {
+  width: 100px !important;
 }
 
 .hidden {

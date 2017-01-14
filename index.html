@@ -3,29 +3,60 @@
 
   <head>
     <title>Finger Mouse</title>
-    
+
     <link rel="stylesheet" type="text/css" href="style.css">
+
+    <link rel="import" href="/bower_components/polymer-panzoom/panzoom.html">
+
+    <link rel="import" href="/bower_components/iron-icons/iron-icons.html">
+    <link rel="import" href="/bower_components/paper-toolbar/paper-toolbar.html">
+    <link rel="import" href="/bower_components/paper-slider/paper-slider.html">
+    <link rel="import" href="/bower_components/paper-drawer-panel/paper-drawer-panel.html">
+    <link rel="import" href="/bower_components/paper-header-panel/paper-header-panel.html">
+    <link rel="import" href="/bower_components/paper-button/paper-button.html">
+    <link rel="import" href="/bower_components/paper-icon-button/paper-icon-button.html">
+    <link rel="import" href="/bower_components/paper-checkbox/paper-checkbox.html">
   </head>
 
   <body>
-    <svg>
-    
-      <g id="base-layer"></g>
-    
-      <circle class="laser-source" cx="1700" cy="600" r="8"/>
-      <polyline class="laser-line" id="laser-line"/>
-    </svg>
-    
-    <canvas id="heatmap" class="hidden" width="200" height="200"></canvas>
-    
-    <div class="toolbox">
-      <button class="toolbox-item toggle" id="coverage-toggle">Coverage</button>
-      <button class="toolbox-item toggle" id="heatmap-toggle">Heatmap</button>
-      <button class="toolbox-item toggle" id="laser-spin-toggle">Laser spin</button>
-      <button class="toolbox-item toggle" id="reflected-laser-origins-toggle">Reflected laser origins</button>
-      <button class="toolbox-item toggle" id="multi-laser-lines-toggle">Multiple laser lines</button>
-    </div>
-    
+    <paper-drawer-panel>
+      <paper-header-panel drawer>
+        <paper-toolbar>
+          <div>Tools</div>
+        </paper-toolbar>
+        <div>
+          <div><paper-checkbox class="toolbox-item" id="coverage-toggle">Coverage</paper-checkbox></div>
+          <div><paper-checkbox class="toolbox-item" id="heatmap-toggle">Heatmap</paper-checkbox></div>
+          <div><paper-checkbox class="toolbox-item" id="laser-spin-toggle">Laser Spin</paper-checkbox></div>
+          <div><paper-checkbox class="toolbox-item" id="reflected-laser-origins-toggle">Reflected laser origins</paper-checkbox></div>
+          <div><paper-checkbox class="toolbox-item" id="multi-laser-lines-toggle">Multiple laser lines</paper-checkbox></div>
+          <div><paper-slider disabled class="toolbox-item" id="multi-laser-lines-slider" min="0" max="800" editable>Multiple laser lines</paper-checkbox></div>
+        </div>
+      </paper-header-panel>
+      <paper-header-panel main>
+
+        <paper-toolbar>
+          <paper-icon-button icon="menu" paper-drawer-toggle></paper-icon-button>
+          <div>Finger Mouse</div>
+        </paper-toolbar>
+
+        <div class="main-content">
+          <polymer-panzoom id="panzoom">
+            <svg>
+
+              <g id="base-layer"></g>
+
+              <circle class="laser-source" cx="1700" cy="600" r="8"/>
+              <polyline class="laser-line" id="laser-line"/>
+            </svg>
+
+            <canvas id="heatmap" class="hidden" width="200" height="200"></canvas>
+          </polymer-panzoom>
+        </div>
+
+      </paper-header-panel>
+    </paper-drawer-panel>
+
     <script src="vector_math.js"></script>
     <script src="util.js"></script>
     <script src="script.js"></script>
