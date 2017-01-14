@@ -1,0 +1,24 @@
+{
+  "name": "finger_mouse",
+  "version": "1.0.0",
+  "description": "A hardware project to create a multi-fingered tracking device.",
+  "main": "script.js",
+  "scripts": {
+    "start": "bower install; http-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshua-shone/finger-mouse.git"
+  },
+  "author": "Joshua Shone",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joshua-shone/finger-mouse/issues"
+  },
+  "homepage": "https://github.com/joshua-shone/finger-mouse#readme",
+  "dependencies": {
+    "bower": "^1.8.0",
+    "http-server": "^0.9.0"
+  }
+}

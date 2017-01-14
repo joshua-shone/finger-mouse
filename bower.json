@@ -11,7 +11,7 @@
   "ignore": [
     "**/.*",
     "node_modules",
-    "bower_components",
+    "bower_components"
   ],
   "dependencies": {
     "paper-button": "^1.0.14",

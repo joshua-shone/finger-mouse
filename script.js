@@ -354,13 +354,13 @@ updateLaserLine();
 var multiLaserLines = [];
 
 function updateMultiLaserLines() {
-  
+
   if (multiLaserLines.length != multiLaserLineCount) {
     multiLaserLines.forEach(function(multiLaserLine) {
       multiLaserLine.remove();
     });
     multiLaserLines = [];
-    
+
     for (var i=0; i<multiLaserLineCount; i++) {
       var multiLaserLine = document.createElementNS(svgNS, 'polyline');
       multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
@@ -368,9 +368,9 @@ function updateMultiLaserLines() {
       multiLaserLines.push(multiLaserLine);
     }
   }
-  
+
   var rotationRange = Math.PI / 2;
-  
+
   var spinningMirrorsAngleBefore = spinningMirrorsAngle;
   if (isDisplayingMultiLaserLines) {
     multiLaserLines.forEach(function(multiLaserLine, index) {

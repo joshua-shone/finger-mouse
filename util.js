@@ -27,16 +27,16 @@ function setPixelOnCanvas(context, x, y, color) {
 }
 
 function setupDragging(element, callbacks) {
-  
+
   var cursorBeforeDrag = null;
-  
+
   function handleMousemove(event) {
     event.preventDefault();
     event.stopPropagation();
     var cursorDelta = {x: event.pageX - cursorBeforeDrag.x, y: event.pageY - cursorBeforeDrag.y};
     callbacks.move(cursorDelta);
   }
-  
+
   element.addEventListener('mousedown', function(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -47,7 +47,7 @@ function setupDragging(element, callbacks) {
     window.addEventListener('mousemove', handleMousemove);
     window.addEventListener('mouseup',   handleMouseup);
   });
-  
+
   function handleMouseup(event) {
     window.removeEventListener('mousemove', handleMousemove);
     window.removeEventListener('mouseup',   handleMouseup);
