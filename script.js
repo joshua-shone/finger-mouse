@@ -1,5 +1,4 @@
 var svg = document.getElementsByTagName('svg')[0];
-var svgNS = 'http://www.w3.org/2000/svg';
 
 var baseLayer = document.getElementById('base-layer');
 
@@ -17,19 +16,6 @@ var nextSweptAreaGradientId = 1;
 
 var heatmap = document.getElementById('heatmap');
 var heatmapCanvasContext = heatmap.getContext('2d');
-
-var pixelImage = heatmapCanvasContext.createImageData(1,1);
-var pixelImageData = pixelImage.data;
-
-function setPixelOnCanvas(context, x, y, color) {
-  pixelImageData[0] = color.r;
-  pixelImageData[1] = color.g;
-  pixelImageData[2] = color.b;
-  pixelImageData[3] = color.a;
-  context.putImageData(pixelImage, x, y);
-}
-
-setPixelOnCanvas(heatmapCanvasContext, 10, 10, {r: 255, g: 0, b: 0, a: 255});
 
 var heatmapResolutionX = parseInt(heatmap.getAttribute('width'));
 var heatmapResolutionY = parseInt(heatmap.getAttribute('height'));
@@ -318,15 +304,6 @@ laserSource.addEventListener('mousedown', function() {
 function laserSourceMouseup(event) {
   window.removeEventListener('mousemove', laserSourceDragged);
   window.removeEventListener('mouseup', laserSourceMouseup);
-}
-
-function addDebugPoint(position, radius) {
-  var debugPoint = document.createElementNS(svgNS, 'circle');
-  debugPoint.setAttributeNS(null, 'class', 'debug-point');
-  debugPoint.setAttributeNS(null, 'r', radius || '5');
-  debugPoint.setAttributeNS(null, 'cx', position.x);
-  debugPoint.setAttributeNS(null, 'cy', position.y);
-  baseLayer.appendChild(debugPoint);
 }
 
 function generateLaserPath(position, angle) {
