@@ -7,7 +7,7 @@ function dotProduct(v1, v2) {
 }
 
 function add(v1, v2) {
-    return {
+  return {
     x: v1.x + v2.x,
     y: v1.y + v2.y,
   }
@@ -18,6 +18,10 @@ function subtract(v1, v2) {
     x: v1.x - v2.x,
     y: v1.y - v2.y,
   }
+}
+
+function vectorTo(v1, v2) {
+  return subtract(v2, v1);
 }
 
 function multiply(vector, operand) {
@@ -41,8 +45,26 @@ function divide(vector, scalar) {
   }
 }
 
+function negate(vector) {
+  return {
+    x: -vector.x,
+    y: -vector.y,
+  }
+}
+
+function perpendicular(vector) {
+  return {
+    x: -vector.y,
+    y:  vector.x,
+  }
+}
+
 function length(vector) {
-  return Math.sqrt((vector.x * vector.x) + (vector.y * vector.y));
+  return Math.hypot(vector.x, vector.y);
+}
+
+function lengthBetween(v1, v2) {
+  return length(subtract(v1, v2));
 }
 
 function normalized(vector) {
@@ -64,9 +86,17 @@ function reflect(incident, normal) {
 
 function vectorAtAngle(angle) {
   return {
-    x: Math.sin(angle),
-    y: Math.cos(angle),
+    x:  Math.cos(angle),
+    y: -Math.sin(angle),
   }
+}
+
+function angleOfVector(vector) {
+  return Math.atan2(-vector.y, vector.x);
+}
+
+function angleTo(from, to) {
+  return angleOfVector(subtract(to, from));
 }
 
 function closestPointOnLine(line, point) {

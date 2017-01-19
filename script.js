@@ -1,11 +1,14 @@
 var svg = document.getElementsByTagName('svg')[0];
 
-var baseLayer = document.getElementById('base-layer');
+var baseLayer                  = document.getElementById('base-layer');
+var coverageLayer              = document.getElementById('coverage-layer');
+var multiLaserLinesLayer       = document.getElementById('multi-laser-lines-layer');
+var reflectedLaserOriginsLayer = document.getElementById('reflected-laser-origins-layer');
 
 var laserSource = document.getElementsByClassName('laser-source')[0];
 var laserLine = document.getElementById('laser-line');
 
-var laserAngle = Math.PI / -2;
+var laserAngle = Math.PI;
 var laserPosition = {x: 1700, y: 600};
 var isLaserSpinning = false;
 var isDraggingLaser = false;
@@ -21,6 +24,8 @@ var heatmapResolutionX = parseInt(heatmap.getAttribute('width'));
 var heatmapResolutionY = parseInt(heatmap.getAttribute('height'));
 
 var multiLaserLineCount = 200;
+
+var cursorDebugPoint = addDebugPoint(baseLayer, {x:0, y: 0});
 
 function updateHeatmap() {
   
@@ -38,8 +43,6 @@ function updateHeatmap() {
       }
       
       var value = 0;
-      
-      var vectorToLaser = normalized(subtract(worldPosition, laserPosition));
       
       var mirrorsInRange = mirrors.filter(function(mirror) {
         if (!whichSideOfLine(mirror, worldPosition)) {
@@ -91,7 +94,7 @@ window.addEventListener('resize', function() {
   updateHeatmap();
 });
 
-function createMirror(start, end) {
+function createMirror(start, end, options) {
   var mirror = {};
   
   mirror.lineElement = document.createElementNS(svgNS, 'line');
@@ -99,53 +102,59 @@ function createMirror(start, end) {
   baseLayer.appendChild(mirror.lineElement);
   
   mirror.reflectedLaserOriginElement = document.createElementNS(svgNS, 'circle');
-  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'class', 'reflected-laser-origin hidden');
+  mirror.reflectedLaserOriginElement.setAttributeNS(null, 'class', 'reflected-laser-origin');
   mirror.reflectedLaserOriginElement.setAttributeNS(null, 'r', '5');
-  baseLayer.appendChild(mirror.reflectedLaserOriginElement);
+  mirror.reflectedLaserOriginNormalElement = document.createElementNS(svgNS, 'line');
+  mirror.reflectedLaserOriginNormalElement.setAttributeNS(null, 'class', 'reflected-laser-origin-normal');
+  reflectedLaserOriginsLayer.appendChild(mirror.reflectedLaserOriginElement);
+  reflectedLaserOriginsLayer.appendChild(mirror.reflectedLaserOriginNormalElement);
   
-  mirror.handleStart = document.createElementNS(svgNS, 'circle');
-  mirror.handleStart.setAttributeNS(null, 'class', 'mirror-handle');
-  mirror.handleStart.setAttributeNS(null, 'r', '8');
-  baseLayer.appendChild(mirror.handleStart);
+  if (options.draggable) {
   
-  mirror.handleEnd = document.createElementNS(svgNS, 'circle');
-  mirror.handleEnd.setAttributeNS(null, 'class', 'mirror-handle');
-  mirror.handleEnd.setAttributeNS(null, 'r', '8');
-  baseLayer.appendChild(mirror.handleEnd);
-  
-  setupDragging(mirror.handleStart, {
-    start: function(cursorBeforeDrag) {
-      mirror.startBeforeDrag = mirror.start;
-    },
-    move: function(cursorDelta) {
-      mirror.update({x: mirror.startBeforeDrag.x + cursorDelta.x, y: mirror.startBeforeDrag.y + cursorDelta.y}, mirror.end);
-      updateHeatmap();
-      updateLaserLine();
-      updateMultiLaserLines();
-    }
-  });
-  
-  setupDragging(mirror.handleEnd, {
-    start: function(cursorBeforeDrag) {
-      mirror.endBeforeDrag = mirror.end;
-    },
-    move: function(cursorDelta) {
-      mirror.update(mirror.start, {x: mirror.endBeforeDrag.x + cursorDelta.x, y: mirror.endBeforeDrag.y + cursorDelta.y});
-      updateHeatmap();
-      updateLaserLine();
-      updateMultiLaserLines();
-    }
-  });
+    mirror.handleStart = document.createElementNS(svgNS, 'circle');
+    mirror.handleStart.setAttributeNS(null, 'class', 'mirror-handle');
+    mirror.handleStart.setAttributeNS(null, 'r', '8');
+    baseLayer.appendChild(mirror.handleStart);
+    
+    mirror.handleEnd = document.createElementNS(svgNS, 'circle');
+    mirror.handleEnd.setAttributeNS(null, 'class', 'mirror-handle');
+    mirror.handleEnd.setAttributeNS(null, 'r', '8');
+    baseLayer.appendChild(mirror.handleEnd);
+    
+    setupDragging(mirror.handleStart, {
+      start: function(cursorBeforeDrag) {
+        mirror.startBeforeDrag = mirror.start;
+      },
+      move: function(cursorDelta) {
+        mirror.update({x: mirror.startBeforeDrag.x + cursorDelta.x, y: mirror.startBeforeDrag.y + cursorDelta.y}, mirror.end);
+        updateHeatmap();
+        updateLaserLine();
+        updateMultiLaserLines();
+      }
+    });
+    
+    setupDragging(mirror.handleEnd, {
+      start: function(cursorBeforeDrag) {
+        mirror.endBeforeDrag = mirror.end;
+      },
+      move: function(cursorDelta) {
+        mirror.update(mirror.start, {x: mirror.endBeforeDrag.x + cursorDelta.x, y: mirror.endBeforeDrag.y + cursorDelta.y});
+        updateHeatmap();
+        updateLaserLine();
+        updateMultiLaserLines();
+      }
+    });
+  }
   
   mirror.sweepGradient = document.createElementNS(svgNS, 'radialGradient');
   mirror.sweepGradient.setAttributeNS(null, 'id', 'sweptAreaGradient' + nextSweptAreaGradientId);
   mirror.sweepGradient.setAttributeNS(null, 'gradientUnits', 'userSpaceOnUse');
-  baseLayer.appendChild(mirror.sweepGradient);
+  coverageLayer.appendChild(mirror.sweepGradient);
   
   mirror.sweptArea = document.createElementNS(svgNS, 'path');
-  mirror.sweptArea.setAttributeNS(null, 'class', 'swept-area hidden');
+  mirror.sweptArea.setAttributeNS(null, 'class', 'swept-area');
   mirror.sweptArea.setAttributeNS(null, 'fill', 'url(#sweptAreaGradient' + nextSweptAreaGradientId + ')');
-  baseLayer.appendChild(mirror.sweptArea);
+  coverageLayer.appendChild(mirror.sweptArea);
   
   var stop1 = document.createElementNS(svgNS, 'stop');
   stop1.setAttributeNS(null, 'offset', '0%');
@@ -162,36 +171,53 @@ function createMirror(start, end) {
     mirror.start = start;
     mirror.end = end;
     
-    mirror.handleStart.setAttributeNS(null, 'cx', start.x);
-    mirror.handleStart.setAttributeNS(null, 'cy', start.y);
-    
-    mirror.handleEnd.setAttributeNS(null, 'cx', end.x);
-    mirror.handleEnd.setAttributeNS(null, 'cy', end.y);
+    if (options.draggable) {
+      mirror.handleStart.setAttributeNS(null, 'cx', start.x);
+      mirror.handleStart.setAttributeNS(null, 'cy', start.y);
+      
+      mirror.handleEnd.setAttributeNS(null, 'cx', end.x);
+      mirror.handleEnd.setAttributeNS(null, 'cy', end.y);
+    }
     
     mirror.lineElement.setAttributeNS(null, 'x1', start.x);
     mirror.lineElement.setAttributeNS(null, 'y1', start.y);
     mirror.lineElement.setAttributeNS(null, 'x2', end.x);
     mirror.lineElement.setAttributeNS(null, 'y2', end.y);
     
-    var closestPoint = closestPointOnLine(mirror, laserPosition);
-    var reflectedLaserOrigin = add(closestPoint, subtract(closestPoint, laserPosition));
-    mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cx', reflectedLaserOrigin.x);
-    mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cy', reflectedLaserOrigin.y);
-    mirror.reflectedLaserOrigin = reflectedLaserOrigin;
-    var sweepExtent = 1100;
-    var sweptAreaPoint1 = add(reflectedLaserOrigin, multiply(normalized(subtract(mirror.start, reflectedLaserOrigin)), sweepExtent));
-    var sweptAreaPoint2 = add(reflectedLaserOrigin, multiply(normalized(subtract(mirror.end, reflectedLaserOrigin)), sweepExtent));
-    mirror.sweptArea.setAttributeNS(null, 'd', 'M' + mirror.start.x + ',' + mirror.start.y + ' L ' + 
-                                              sweptAreaPoint1.x + ',' + sweptAreaPoint1.y + ' ' +
-                                              'A ' + sweepExtent + ',' + sweepExtent + ' 0 0 0 ' + 
-                                              sweptAreaPoint2.x + ',' + sweptAreaPoint2.y + ' L ' +
-                                              mirror.end.x + ',' + mirror.end.y);
-    
-    mirror.sweepGradient.setAttributeNS(null, 'cx', reflectedLaserOrigin.x);
-    mirror.sweepGradient.setAttributeNS(null, 'cy', reflectedLaserOrigin.y);
-    mirror.sweepGradient.setAttributeNS(null, 'fx', reflectedLaserOrigin.x);
-    mirror.sweepGradient.setAttributeNS(null, 'fy', reflectedLaserOrigin.y);
-    mirror.sweepGradient.setAttributeNS(null, 'r', sweepExtent);
+    if (whichSideOfLine(mirror, laserPosition)) {
+      
+      var closestPoint = closestPointOnLine(mirror, laserPosition);
+      var reflectedLaserOrigin = add(closestPoint, vectorTo(laserPosition, closestPoint));
+      mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cx', reflectedLaserOrigin.x);
+      mirror.reflectedLaserOriginElement.setAttributeNS(null, 'cy', reflectedLaserOrigin.y);
+      mirror.reflectedLaserOriginNormalElement.setAttributeNS(null, 'x1', reflectedLaserOrigin.x);
+      mirror.reflectedLaserOriginNormalElement.setAttributeNS(null, 'y1', reflectedLaserOrigin.y);
+      mirror.reflectedLaserOriginNormalElement.setAttributeNS(null, 'x2', closestPoint.x);
+      mirror.reflectedLaserOriginNormalElement.setAttributeNS(null, 'y2', closestPoint.y);
+      mirror.reflectedLaserOrigin = reflectedLaserOrigin;
+      var sweepExtent = 1100;
+      var sweptAreaPoint1 = add(reflectedLaserOrigin, multiply(normalized(vectorTo(reflectedLaserOrigin, mirror.start)), sweepExtent));
+      var sweptAreaPoint2 = add(reflectedLaserOrigin, multiply(normalized(vectorTo(reflectedLaserOrigin, mirror.end)),   sweepExtent));
+      mirror.sweptArea.setAttributeNS(null, 'd', 'M' + mirror.start.x + ',' + mirror.start.y + ' L ' + 
+                                                sweptAreaPoint1.x + ',' + sweptAreaPoint1.y + ' ' +
+                                                'A ' + sweepExtent + ',' + sweepExtent + ' 0 0 0 ' + 
+                                                sweptAreaPoint2.x + ',' + sweptAreaPoint2.y + ' L ' +
+                                                mirror.end.x + ',' + mirror.end.y);
+      
+      mirror.sweepGradient.setAttributeNS(null, 'cx', reflectedLaserOrigin.x);
+      mirror.sweepGradient.setAttributeNS(null, 'cy', reflectedLaserOrigin.y);
+      mirror.sweepGradient.setAttributeNS(null, 'fx', reflectedLaserOrigin.x);
+      mirror.sweepGradient.setAttributeNS(null, 'fy', reflectedLaserOrigin.y);
+      mirror.sweepGradient.setAttributeNS(null, 'r', sweepExtent);
+      
+      mirror.reflectedLaserOriginElement.classList.remove('hidden');
+      mirror.reflectedLaserOriginNormalElement.classList.remove('hidden');
+      mirror.sweepGradient.classList.remove('hidden');
+    } else {
+      mirror.reflectedLaserOriginElement.classList.add('hidden');
+      mirror.reflectedLaserOriginNormalElement.classList.add('hidden');
+      mirror.sweepGradient.classList.add('hidden');
+    }
   }
   
   mirror.update(start, end);
@@ -201,23 +227,31 @@ function createMirror(start, end) {
   return mirror;
 }
 
-createMirror({x: 600, y: 200}, {x: 1700, y: 600});
+createMirror({x: 600, y: 200}, {x: 1700, y: 600}, {draggable: true});
 
 var spinningMirrors = [];
 var spinningMirrorsAngle = 0;
 var spinningMirrorsPosition = {x: 410, y: 600};
 var spinningMirrorsRadius = 30;
 for (var i=0; i<4; i++) {
-  spinningMirrors.push(createMirror({x: 10, y: 10}, {x: 20, y: 20}));
+  spinningMirrors.push(createMirror({x: 10, y: 10}, {x: 20, y: 20}, {draggable: false}));
 }
 var spinningMirrorAngleInterval = (Math.PI * 2) / spinningMirrors.length;
+var spinningMirrorsRotationMarker = document.createElementNS(svgNS, 'line');
+spinningMirrorsRotationMarker.setAttributeNS(null, 'class', 'laser-line');
+baseLayer.appendChild(spinningMirrorsRotationMarker);
 
 function updateSpinningMirrors() {
+  var rotationMarkerPosition = add(spinningMirrorsPosition, multiply(vectorAtAngle(spinningMirrorsAngle), spinningMirrorsRadius));
+  spinningMirrorsRotationMarker.setAttributeNS(null, 'x1', spinningMirrorsPosition.x);
+  spinningMirrorsRotationMarker.setAttributeNS(null, 'y1', spinningMirrorsPosition.y);
+  spinningMirrorsRotationMarker.setAttributeNS(null, 'x2', rotationMarkerPosition.x);
+  spinningMirrorsRotationMarker.setAttributeNS(null, 'y2', rotationMarkerPosition.y);
   spinningMirrors.forEach(function(mirror, index) {
-    var mirrorStartVector = vectorAtAngle(spinningMirrorsAngle + (spinningMirrorAngleInterval * index));
-    var mirrorEndVector = vectorAtAngle(spinningMirrorsAngle + (spinningMirrorAngleInterval * (index+1)));
-    mirrorStartVector = multiply(mirrorStartVector, spinningMirrorsRadius);
-    mirrorEndVector = multiply(mirrorEndVector, spinningMirrorsRadius);
+    var mirrorNormal = vectorAtAngle(spinningMirrorsAngle + (spinningMirrorAngleInterval * index));
+    var mirrorCenter = multiply(mirrorNormal, spinningMirrorsRadius);
+    var mirrorStartVector = add(mirrorCenter, multiply(perpendicular(mirrorNormal),         spinningMirrorsRadius));
+    var mirrorEndVector   = add(mirrorCenter, multiply(negate(perpendicular(mirrorNormal)), spinningMirrorsRadius));
     mirror.update(add(spinningMirrorsPosition, mirrorStartVector), add(spinningMirrorsPosition, mirrorEndVector));
   });
 }
@@ -229,11 +263,7 @@ var coverageToggle = document.getElementById('coverage-toggle');
 coverageToggle.classList.add('on');
 coverageToggle.addEventListener('change', function() {
   isDisplayingCoverage = coverageToggle.checked;
-  coverageToggle.classList.toggle('on',   isDisplayingCoverage);
-  coverageToggle.classList.toggle('off', !isDisplayingCoverage);
-  mirrors.forEach(function(mirror) {
-    mirror.sweptArea.classList.toggle('hidden', !isDisplayingCoverage);
-  });
+  coverageLayer.classList.toggle('hidden', !isDisplayingCoverage);
 });
 
 var isDisplayingHeatmap = false;
@@ -241,8 +271,6 @@ var heatmapToggle = document.getElementById('heatmap-toggle');
 heatmapToggle.classList.add('off');
 heatmapToggle.addEventListener('change', function() {
   isDisplayingHeatmap = heatmapToggle.checked;
-  heatmapToggle.classList.toggle('on',   isDisplayingHeatmap);
-  heatmapToggle.classList.toggle('off', !isDisplayingHeatmap);
   heatmap.classList.toggle('hidden', !isDisplayingHeatmap);
   updateHeatmap();
 });
@@ -251,8 +279,6 @@ var laserSpinToggle = document.getElementById('laser-spin-toggle');
 laserSpinToggle.classList.add('off');
 laserSpinToggle.addEventListener('change', function() {
   isLaserSpinning = laserSpinToggle.checked;
-  laserSpinToggle.classList.toggle('on',   isLaserSpinning);
-  laserSpinToggle.classList.toggle('off', !isLaserSpinning);
 });
 
 var isDisplayingReflectedLaserOrigins = true;
@@ -260,11 +286,7 @@ var reflectedLaserOriginsToggle = document.getElementById('reflected-laser-origi
 reflectedLaserOriginsToggle.classList.add('on');
 reflectedLaserOriginsToggle.addEventListener('change', function() {
   isDisplayingReflectedLaserOrigins = reflectedLaserOriginsToggle.checked;
-  reflectedLaserOriginsToggle.classList.toggle('on',   isDisplayingReflectedLaserOrigins);
-  reflectedLaserOriginsToggle.classList.toggle('off', !isDisplayingReflectedLaserOrigins);
-  mirrors.forEach(function(mirror) {
-    mirror.reflectedLaserOriginElement.classList.toggle('hidden', !isDisplayingReflectedLaserOrigins);
-  });
+  reflectedLaserOriginsLayer.classList.toggle('hidden', !isDisplayingReflectedLaserOrigins);
 });
 
 var isDisplayingMultiLaserLines = false;
@@ -273,20 +295,25 @@ multiLaserLinesToggle.classList.add('off');
 multiLaserLinesToggle.addEventListener('change', function() {
   isDisplayingMultiLaserLines = multiLaserLinesToggle.checked;
   multiLaserLinesSlider.set('disabled', !isDisplayingMultiLaserLines);
-  multiLaserLinesToggle.classList.toggle('on',   isDisplayingMultiLaserLines);
-  multiLaserLinesToggle.classList.toggle('off', !isDisplayingMultiLaserLines);
   if (isDisplayingMultiLaserLines) {
     updateMultiLaserLines();
   }
-  multiLaserLines.forEach(function(line) {
-    line.classList.toggle('hidden', !isDisplayingMultiLaserLines);
-  });
+  multiLaserLinesLayer.classList.toggle('hidden', !isDisplayingMultiLaserLines);
 });
 
 var multiLaserLinesSlider = document.getElementById('multi-laser-lines-slider');
 multiLaserLinesSlider.set('value', multiLaserLineCount);
 multiLaserLinesSlider.addEventListener('immediate-value-changed', function() {
   multiLaserLineCount = multiLaserLinesSlider.immediateValue;
+  updateMultiLaserLines();
+});
+
+var spinningMirrorsRadiusSlider = document.getElementById('spinning-mirrors-radius');
+spinningMirrorsRadiusSlider.set('value', spinningMirrorsRadius);
+spinningMirrorsRadiusSlider.addEventListener('immediate-value-changed', function() {
+  spinningMirrorsRadius = spinningMirrorsRadiusSlider.immediateValue;
+  updateSpinningMirrors();
+  updateLaserLine();
   updateMultiLaserLines();
 });
 
@@ -310,11 +337,7 @@ setupDragging(laserSource, {
 
 function generateLaserPath(position, angle) {
   
-  var radius = 800;
-  var laserVector = {
-    x: Math.sin(angle),
-    y: Math.cos(angle),
-  }
+  var laserVector = vectorAtAngle(laserAngle);
   
   var laserPoints = [{
     position: position,
@@ -364,7 +387,7 @@ function updateMultiLaserLines() {
     for (var i=0; i<multiLaserLineCount; i++) {
       var multiLaserLine = document.createElementNS(svgNS, 'polyline');
       multiLaserLine.setAttributeNS(null, 'class', 'laser-line');
-      baseLayer.appendChild(multiLaserLine);
+      multiLaserLinesLayer.appendChild(multiLaserLine);
       multiLaserLines.push(multiLaserLine);
     }
   }
@@ -394,19 +417,21 @@ function findNextLaserPoint(currentPoint) {
     
     // Using ray-line intersection technique from http://stackoverflow.com/a/14318254/1933312
     var result = lineIntersection({start: currentPoint.position, end: add(currentPoint.position, currentPoint.vector)}, mirror);
-    var intersects = (result.t > 0) && (result.u > 0 && result.u < 1);
+    var intersects = (result.t > 0) && (result.u >= 0 && result.u <= 1);
     if (intersects) {
       var hitPoint = add(currentPoint.position, multiply(currentPoint.vector, result.t));
       
-      var mirrorVector = subtract(mirror.end, mirror.start);
+      var mirrorVector = vectorTo(mirror.start, mirror.end);
       var mirrorNormal = normalized({x: -mirrorVector.y, y: mirrorVector.x});
       
-      var incidentVector = subtract(hitPoint, currentPoint.position);
+      var incidentVector = vectorTo(currentPoint.position, hitPoint);
       var reflectionVector = reflect(incidentVector, mirrorNormal);
       
-      if (!nextVector || (length(subtract(hitPoint, currentPoint.position)) < length(subtract(nextPosition, currentPoint.position)))) {
+      if (!nextVector || (lengthBetween(currentPoint.position, hitPoint) < lengthBetween(currentPoint.position, nextPosition))) {
         nextPosition = hitPoint;
-        nextVector = normalized(reflectionVector);
+        if (whichSideOfLine(mirror, currentPoint.position)) {
+          nextVector = normalized(reflectionVector);
+        }
         hitMirror = mirror;
       }
     }
@@ -417,6 +442,37 @@ function findNextLaserPoint(currentPoint) {
     vector: nextVector,
     mirror: hitMirror,
   }
+}
+
+function findVisibleMirrorSegments(mirrors, vantagePoint) {
+  var localizedMirrors = [];
+  mirrors.forEach(function(mirror) {
+    var vectorToStart = vectorTo(vantagePoint, mirror.start);
+    var vectorToEnd   = vectorTo(vantagePoint, mirror.end);
+    var localizedMirror = {
+      start: {x: angleOfVector(vectorToStart), y: length(vectorToStart)},
+      end:   {x: angleOfVector(vectorToEnd),   y: length(vectorToEnd)},
+    };
+    
+    if (localizedMirror.start.x > localizedMirror.end.x) {
+      localizedMirror = {
+        start: localizedMirror.end,
+        end:   localizedMirror.start,
+      }
+    }
+    
+    localizedMirrors.push(localizedMirror);
+  });
+  
+  localizedMirrors.filter(function(localizedMirror) {
+    localizedMirrors.forEach(function(otherLocalizedMirror) {
+      if (localizedMirror !== otherLocalizedMirror) {
+        if (otherLocalizedMirror.start.x < localizedMirror.start.x && otherLocalizedMirror.end.x > localizedMirror.end.x) {
+          
+        }
+      }
+    });
+  });
 }
 
 var lastTimestamp = null;
@@ -460,11 +516,21 @@ window.addEventListener('mouseup', function() {
   isDraggingLaser = false;
 });
 
-window.addEventListener('mousemove', function(event) {
+svg.addEventListener('mousemove', function(event) {
   if (isDraggingLaser) {
-//     laserAngle = Math.atan2(event.clientY - laserPosition.y, -(event.clientX - laserPosition.x)) - (Math.PI / 2);
-    spinningMirrorsAngle = Math.atan2(event.clientY - spinningMirrorsPosition.y, -(event.clientX - spinningMirrorsPosition.x)) - (Math.PI / 2);
-//     updateLaserLine();
+    var cursor = {x: event.offsetX, y: event.offsetY};
+//     laserAngle = angleTo(laserPosition, cursor);
+    spinningMirrorsAngle = angleTo(spinningMirrorsPosition, cursor);
+    
+    var angleToCursor = angleTo(spinningMirrorsPosition, cursor);
+    var angleToLaser  = angleTo(spinningMirrorsPosition, laserPosition);
+    var reflectionAngle = angleToCursor + ((angleToLaser - angleToCursor) / 2);
+    
+//     spinningMirrorsAngle = reflectionAngle;
+//     spinningMirrorsAngle = reflectionAngle - (angleOfVector({x: lengthBetween(cursor, spinningMirrorsPosition), y: spinningMirrorsRadius}) * (spinningMirrorsAngle / (Math.PI/2)));
+    
+    cursorDebugPoint.setAttributeNS(null, 'cx', cursor.x);
+    cursorDebugPoint.setAttributeNS(null, 'cy', cursor.y);
   }
 });
 

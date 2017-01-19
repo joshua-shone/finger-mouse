@@ -29,8 +29,11 @@
           <div><paper-checkbox class="toolbox-item" id="heatmap-toggle">Heatmap</paper-checkbox></div>
           <div><paper-checkbox class="toolbox-item" id="laser-spin-toggle">Laser Spin</paper-checkbox></div>
           <div><paper-checkbox class="toolbox-item" id="reflected-laser-origins-toggle">Reflected laser origins</paper-checkbox></div>
+
           <div><paper-checkbox class="toolbox-item" id="multi-laser-lines-toggle">Multiple laser lines</paper-checkbox></div>
-          <div><paper-slider disabled class="toolbox-item" id="multi-laser-lines-slider" min="0" max="800" editable>Multiple laser lines</paper-checkbox></div>
+          <div><paper-slider class="toolbox-item" id="multi-laser-lines-slider" min="0" max="800" editable disabled>Multiple laser lines</paper-checkbox></div>
+
+          <div><paper-slider class="toolbox-item" id="spinning-mirrors-radius" min="0" max="800" editable>Spinning mirrors radius</paper-checkbox></div>
         </div>
       </paper-header-panel>
       <paper-header-panel main>
@@ -45,6 +48,9 @@
             <svg>
 
               <g id="base-layer"></g>
+              <g id="coverage-layer" class="hidden"></g>
+              <g id="multi-laser-lines-layer" class="hidden"></g>
+              <g id="reflected-laser-origins-layer" class="hidden"></g>
 
               <circle class="laser-source" cx="1700" cy="600" r="8"/>
               <polyline class="laser-line" id="laser-line"/>

@@ -46,9 +46,15 @@ polymer-panzoom {
   fill: rgba(255, 0, 0, 0.5);
 }
 
+.reflected-laser-origin-normal {
+  stroke: rgba(128, 0, 0, 0.5);
+  stroke-width: 1px;
+}
+
 .laser-line {
   stroke: red;
   stroke-width: 1px;
+  stroke-linejoin: bevel;
   fill: none;
   pointer-events: none;
   opacity: 0.8;
