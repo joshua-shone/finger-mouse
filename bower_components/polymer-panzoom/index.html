@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+
+  <head>
+
+    <meta charset="utf-8">
+    
+    <title>Panzoom Demo</title>
+    
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    
+    <script src="webcomponentsjs/webcomponents-lite.min.js"></script>
+    
+    <link rel="import" href="panzoom.html">
+    
+    <style>
+      #instructions {
+        position: fixed;
+        left:  0;
+        top:   0;
+        right: 0;
+        height: 40px;
+        background-color: #65ADEC;
+        z-index: 2;
+        font-size: 20px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      #instructions > span {
+        margin: 8px;
+      }
+      
+      #panzoom {
+        display: block;
+        position: fixed;
+        left:   50%;
+        top:    50%;
+        width:  300px;
+        height: 300px;
+        margin-left: -150px;
+        margin-top:  -150px;
+        background-color: #ddd;
+        cursor: move;
+      }
+      #panzoom img {
+        display: block;
+        width:  300px;
+        height: 300px;
+      }
+    </style>
+    
+  </head>
+  
+  <body>
+    <div id="instructions">
+      <span><strong>Pan:</strong> click and drag</span>
+      <span><strong>Zoom:</strong> mouse wheel</span>
+      <span><strong>Cursor (container):</strong> <span id="cursor-container"></span></span>
+      <span><strong>Cursor (content):  </strong> <span id="cursor-content"></span></span>
+    </div>
+    
+    <polymer-panzoom id="panzoom">
+      <img src="demo-image.svg">
+    </polymer-panzoom>
+  </body>
+  
+  <script>
+    document.addEventListener('WebComponentsReady', function() {
+    
+      var panzoomElement = document.getElementById('panzoom');
+      
+      // Keyboard controls
+      document.addEventListener('keydown', function(event) {
+        if (event.which === 39) {
+          panzoomElement.panOffset({x: -10, y: 0});
+        } else if (event.which === 38) {
+          panzoomElement.panOffset({x: 0, y: 10});
+        } else if (event.which === 40) {
+          panzoomElement.panOffset({x: 0, y: -10});
+        } else if (event.which === 37) {
+          panzoomElement.panOffset({x: 10, y: 0});
+        } else if (event.which === 107 || event.which === 109) {
+          panzoomElement.panzoomTowardPosition(
+            {
+              x: (window.innerWidth  / 2) - panzoomElement.offsetLeft,
+              y: (window.innerHeight / 2) - panzoomElement.offsetTop,
+            },
+            (event.which === 107) ? 0.08 : -0.08
+          );
+        }
+      });
+      
+      // Cursor coordinate display
+      panzoomElement.addEventListener('mousemove', function(event) {
+        var pointContainer = {
+          x: event.clientX - panzoomElement.offsetLeft,
+          y: event.clientY - panzoomElement.offsetTop,
+        }
+        var pointContent = panzoomElement.panzoomConvertPoint(pointContainer, 'CONTAINER', 'CONTENT');
+        
+        document.getElementById('cursor-container').textContent = pointContainer.x + ' - ' + pointContainer.y;
+        document.getElementById('cursor-content').textContent   = pointContent.x   + ' - ' + pointContent.y;
+      });
+      
+    });
+  </script>
+
+</html>
