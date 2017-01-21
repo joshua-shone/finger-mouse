@@ -6,4 +6,10 @@ A hardware project to create a multi-finger tracking device.
 
 A mouse with articulation points for several fingers, where the position of each finger-tip is tracked using the timing of laser sweeps.
 
+## Mockup and Simulation tool
+
 This repository includes a simulation and mockup tool, served [here](https://joshua-shone.github.io/finger-mouse).
+
+## Geometry
+
+![geometry](https://joshua-shone.github.io/finger-mouse/geometry.svg)
