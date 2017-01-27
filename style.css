@@ -22,12 +22,12 @@ svg {
 
 polymer-panzoom {
   position: absolute;
-  left:   -500px;
-  top:    -500px;
-  padding-left: 500px;
-  padding-top:  500px;
-  right:  -500px;
-  bottom: -500px;
+  left:   -1500px;
+  top:    -1500px;
+  padding-left: 1500px;
+  padding-top:  1500px;
+  right:  -1500px;
+  bottom: -1500px;
   overflow: hidden;
 }
 
