@@ -2,6 +2,8 @@ class Sim {
   constructor(svg) {
     this.svg = svg;
     
+    this.panzoom = document.getElementById('panzoom');
+    
     this.layers = {
       base:                  svg.getElementsByClassName('base-layer')[0],
       coverage:              svg.getElementsByClassName('coverage-layer')[0],
@@ -68,6 +70,8 @@ class Sim {
           nextHit.position = hitPoint;
           if (whichSideOfLine(mirror, hit.position)) {
             nextHit.direction = normalized(reflectionVector);
+          } else {
+            nextHit.direction = null;
           }
           nextHit.mirror = mirror;
         }

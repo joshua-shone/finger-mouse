@@ -65,11 +65,11 @@ polymer-panzoom {
   stroke: blue;
 }
 
-.mirror-handle {
+.handle {
   fill: green;
   cursor: pointer;
 }
-.mirror-handle:hover {
+.handle:hover {
   fill: orange;
 }
 

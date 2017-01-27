@@ -15,7 +15,7 @@ class Laser {
         this.isBeingDragged = true;
       },
       move: (cursorDelta) => {
-        this.position = add(positionBeforeDrag, cursorDelta);
+        this.position = add(positionBeforeDrag, divide(cursorDelta, sim.panzoom._panzoomScale));
         this.sourceElement.setAttributeNS(null, 'cx', this.position.x);
         this.sourceElement.setAttributeNS(null, 'cy', this.position.y);
         sim.mirrors.forEach((mirror) => {

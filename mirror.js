@@ -20,12 +20,12 @@ class Mirror {
     if (options.draggable) {
     
       this.handleStart = document.createElementNS(svgNS, 'circle');
-      this.handleStart.setAttributeNS(null, 'class', 'mirror-handle');
+      this.handleStart.setAttributeNS(null, 'class', 'handle');
       this.handleStart.setAttributeNS(null, 'r', '8');
       sim.layers.base.appendChild(this.handleStart);
       
       this.handleEnd = document.createElementNS(svgNS, 'circle');
-      this.handleEnd.setAttributeNS(null, 'class', 'mirror-handle');
+      this.handleEnd.setAttributeNS(null, 'class', 'handle');
       this.handleEnd.setAttributeNS(null, 'r', '8');
       sim.layers.base.appendChild(this.handleEnd);
       
@@ -34,7 +34,7 @@ class Mirror {
           this.startBeforeDrag = this.start;
         },
         move: (cursorDelta) => {
-          this.update({x: this.startBeforeDrag.x + cursorDelta.x, y: this.startBeforeDrag.y + cursorDelta.y}, this.end);
+          this.update(add(this.startBeforeDrag, divide(cursorDelta, sim.panzoom._panzoomScale)), this.end);
           sim.updateHeatmap();
           sim.laser.update();
           sim.updateMultiLaserLines();
@@ -46,7 +46,7 @@ class Mirror {
           this.endBeforeDrag = this.end;
         },
         move: (cursorDelta) => {
-          this.update(this.start, {x: this.endBeforeDrag.x + cursorDelta.x, y: this.endBeforeDrag.y + cursorDelta.y});
+          this.update(this.start, add(this.endBeforeDrag, divide(cursorDelta, sim.panzoom._panzoomScale)));
           sim.updateHeatmap();
           sim.laser.update();
           sim.updateMultiLaserLines();
