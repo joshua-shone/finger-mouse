@@ -45,12 +45,12 @@
 
         <div class="main-content">
           <polymer-panzoom id="panzoom">
-            <svg>
+            <svg id="sim-svg">
 
-              <g id="base-layer"></g>
-              <g id="coverage-layer" class="hidden"></g>
-              <g id="multi-laser-lines-layer" class="hidden"></g>
-              <g id="reflected-laser-origins-layer" class="hidden"></g>
+              <g class="layer base-layer"></g>
+              <g class="layer hidden coverage-layer"></g>
+              <g class="layer hidden multi-laser-lines-layer"></g>
+              <g class="layer hidden reflected-laser-origins-layer"></g>
 
               <circle class="laser-source" cx="1700" cy="600" r="8"/>
               <polyline class="laser-line" id="laser-line"/>
@@ -65,6 +65,10 @@
 
     <script src="vector_math.js"></script>
     <script src="util.js"></script>
+    <script src="laser.js"></script>
+    <script src="mirror.js"></script>
+    <script src="motor.js"></script>
+    <script src="sim.js"></script>
     <script src="script.js"></script>
   </body>
 

@@ -26,7 +26,7 @@ function setPixelOnCanvas(context, x, y, color) {
   context.putImageData(pixelImage, x, y);
 }
 
-function setupDragging(element, callbacks) {
+function setupDragging(element, options) {
 
   var cursorBeforeDrag = null;
 
@@ -34,22 +34,29 @@ function setupDragging(element, callbacks) {
     event.preventDefault();
     event.stopPropagation();
     var cursorDelta = {x: event.pageX - cursorBeforeDrag.x, y: event.pageY - cursorBeforeDrag.y};
-    callbacks.move(cursorDelta);
+    options.move(cursorDelta, event);
   }
 
-  element.addEventListener('mousedown', function(event) {
+  element.addEventListener('mousedown', (event) => {
+    if (options.button && event.button !== options.button) {
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     cursorBeforeDrag = {x: event.pageX, y: event.pageY};
-    if (callbacks.start) {
-      callbacks.start(cursorBeforeDrag);
+    if (options.start) {
+      options.start(cursorBeforeDrag);
     }
     window.addEventListener('mousemove', handleMousemove);
     window.addEventListener('mouseup',   handleMouseup);
+    return false;
   });
 
   function handleMouseup(event) {
     window.removeEventListener('mousemove', handleMousemove);
     window.removeEventListener('mouseup',   handleMouseup);
+    if (options.end) {
+      options.end();
+    }
   }
 }
