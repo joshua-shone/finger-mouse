@@ -8,7 +8,11 @@ A mouse with articulation points for several fingers, where the position of each
 
 ## Mockup and Simulation tool
 
-This repository includes a simulation and mockup tool, served [here](https://joshua-shone.github.io/finger-mouse).
+[![Simulation Tool](sim_tool_screenshot.png)](https://joshua-shone.github.io/finger-mouse)
+
+The simulation and mockup tool allows components to be interactively moved around to find optimum configurations.
+
+[Launch Simulation Tool](https://joshua-shone.github.io/finger-mouse).
 
 ## Geometry
 
