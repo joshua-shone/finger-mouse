@@ -1,3 +1,3 @@
 set -e
-env GOOS=linux GOARCH=arm go build
-scp finger-mouse 192.168.1.55:~
+env GOOS=linux GOARCH=arm go build sysfs_gpio.go
+scp sysfs_gpio 192.168.1.28:~
