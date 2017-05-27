@@ -1,74 +1,86 @@
 package main
 
 import (
+  "strings"
   "fmt"
-//   "time"
+  "time"
   "os"
   "io/ioutil"
   "syscall"
 )
 
-func FD_SET(p *syscall.FdSet, i int) {
-  p.Bits[i/64] |= 1 << uint(i) % 64
-}
-func FD_ISSET(p *syscall.FdSet, i int) bool {
-  return (p.Bits[i/64] & (1 << uint(i) % 64)) != 0
-}
-func FD_ZERO(p *syscall.FdSet) {
-  for i := range p.Bits {
-    p.Bits[i] = 0
-  }
-}
-
 func main() {
   // Export GPIO device
-//   err := ioutil.WriteFile("/sys/class/gpio/export", []byte("21\n"), 0644)
-//   if err != nil {
-//     fmt.Println(os.Stderr, err)
-//     os.Exit(1)
-//   }
-// 
-//   // HACK: Wait for pin to be exported
-//   time.Sleep(time.Second)
+  err := ioutil.WriteFile("/sys/class/gpio/export", []byte("21\n"), 0644)
+  if strings.Contains(err.Error(), "device or resource busy") {
+    fmt.Println("GPIO pin already appears to be exported, continuing..")
+  } else if err != nil {
+    fmt.Println(os.Stderr, err.Error())
+    os.Exit(1)
+  } else {
+    // HACK: Wait for pin to be exported
+    time.Sleep(time.Second)
+  }
 
   // Set edge interrupt mode
-  err := ioutil.WriteFile("/sys/class/gpio/gpio21/edge", []byte("both\n"), 0644)
+  err = ioutil.WriteFile("/sys/class/gpio/gpio21/edge", []byte("both\n"), 0644)
   if err != nil {
     fmt.Println(os.Stderr, err)
     os.Exit(1)
   }
 
-  gpio_value_file,err := os.Open("/sys/class/gpio/gpio21/value")
+  gpio_value_file,err := syscall.Open("/sys/class/gpio/gpio21/value", syscall.O_RDONLY, 0)
+  if err != nil {
+    fmt.Println(os.Stderr, err)
+    os.Exit(1)
+  }
+  defer syscall.Close(gpio_value_file)
+
+  // Consume any prior interrupt
+  gpio_value := make([]byte, 64)
+  _,err = syscall.Read(gpio_value_file, gpio_value)
   if err != nil {
     fmt.Println(os.Stderr, err)
     os.Exit(1)
   }
 
-  gpio_value := make([]byte, 1)
-  bytes_read,err := gpio_value_file.Read(gpio_value)
+  // Setup EPoll
+  epoll_fd,err := syscall.EpollCreate(1)
   if err != nil {
     fmt.Println(os.Stderr, err)
     os.Exit(1)
   }
-  if bytes_read != 1 {
-    fmt.Println("Incorrect number of bytes read");
+  epoll_event := syscall.EpollEvent{Events: syscall.EPOLLPRI, Fd: (int32)(gpio_value_file)}
+  err = syscall.EpollCtl(epoll_fd, syscall.EPOLL_CTL_ADD, gpio_value_file, &epoll_event)
+  if err != nil {
+    fmt.Println(os.Stderr, err)
     os.Exit(1)
   }
-  fmt.Printf("Value: %s\n", gpio_value)
 
-  file_descriptors := &syscall.FdSet{}
-  timeout := &syscall.Timeval{}
-  timeout.Sec, timeout.Usec = 5,0
-  FD_ZERO(file_descriptors)
-  FD_SET(file_descriptors, (int)(gpio_value_file.Fd()))
-  n,err := syscall.Select((int)(gpio_value_file.Fd()) + 1, nil, nil, file_descriptors, timeout)
-  if err != nil {
-    fmt.Println(os.Stderr, err)
-    os.Exit(1)
-  }
-  if n > 0 {
-    fmt.Println("Event detected!")
-  } else {
-    fmt.Println("No event detected..")
+  event_count := 0
+
+  fmt.Println("Listening for events..")
+  for {
+    n,err := syscall.EpollWait(epoll_fd, []syscall.EpollEvent{epoll_event}, 5000)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
+    if n >= 1 {
+      fmt.Printf("Event detected! #%d\n", event_count)
+      event_count += 1
+    }
+
+    // Consume interrupt
+    _,err = syscall.Seek(gpio_value_file, 0, 0)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
+    _,err = syscall.Read(gpio_value_file, gpio_value)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
   }
 }
