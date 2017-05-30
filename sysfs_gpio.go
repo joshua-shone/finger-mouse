@@ -23,12 +23,29 @@ func consume_event(fd int) (err error) {
   return nil
 }
 
-func produce_events(epoll_fd int, epoll_event syscall.EpollEvent, events_file int) (chan time.Time, chan error){
+func export_gpio_pin(pin_number int) (err error) {
+  // Export GPIO device
+  err = ioutil.WriteFile("/sys/class/gpio/export", []byte(fmt.Sprintf("%d\n", pin_number)), 0644)
+  if err != nil {
+    if strings.Contains(err.Error(), "device or resource busy") {
+      fmt.Printf("GPIO pin %d already appears to be exported, continuing..\n", pin_number)
+      err = nil
+    }
+  }
+  return err
+}
+
+func set_gpio_edge_interrupt_mode(pin_number int, mode string) (err error) {
+  return ioutil.WriteFile(fmt.Sprintf("/sys/class/gpio/gpio%s/edge", pin_number), []byte(mode + "\n"), 0644)
+}
+
+func produce_events(epoll_fd int) (chan time.Time, chan error){
   times := make(chan time.Time, 64)
   errors := make(chan error)
   go func() {
     for {
-      n,err := syscall.EpollWait(epoll_fd, []syscall.EpollEvent{epoll_event}, -1)
+      var epoll_events []syscall.EpollEvent
+      n,err := syscall.EpollWait(epoll_fd, epoll_events, -1)
       if err != nil {
         errors <- err
         close(times)
@@ -40,68 +57,79 @@ func produce_events(epoll_fd int, epoll_event syscall.EpollEvent, events_file in
       }
 
       // Consume interrupt
-      err = consume_event(events_file)
-      if err != nil {
-        errors <- err
-        close(times)
-        close(errors)
+      for _,epoll_event := range epoll_events {
+        err = consume_event((int)(epoll_event.Fd))
+        if err != nil {
+          errors <- err
+          close(times)
+          close(errors)
+          break
+        }
       }
     }
   }()
   return times,errors
 }
 
+const gpio_pin_min_number = 2
+const gpio_pin_max_number = 26
+
 func main() {
-  // Export GPIO device
-  err := ioutil.WriteFile("/sys/class/gpio/export", []byte("21\n"), 0644)
-  if err != nil {
-    if strings.Contains(err.Error(), "device or resource busy") {
-      fmt.Println("GPIO pin already appears to be exported, continuing..")
-    } else {
-      fmt.Println(os.Stderr, err.Error())
+  // Export pins
+  for pin := gpio_pin_min_number; pin <= gpio_pin_max_number; pin++ {
+    err := export_gpio_pin(pin)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
       os.Exit(1)
     }
-  } else {
-    // HACK: Wait for pin to be exported
-    // There doesn't seem to be a good wait to do this. See https://github.com/raspberrypi/linux/issues/553
-    time.Sleep(time.Second)
   }
+
+  // HACK: Wait for pins to be exported
+  // There doesn't seem to be a good wait to do this. See https://github.com/raspberrypi/linux/issues/553
+  time.Sleep(time.Second)
 
   // Set edge interrupt mode
-  err = ioutil.WriteFile("/sys/class/gpio/gpio21/edge", []byte("both\n"), 0644)
-  if err != nil {
-    fmt.Println(os.Stderr, err)
-    os.Exit(1)
+  for pin := gpio_pin_min_number; pin <= gpio_pin_max_number; pin++ {
+    err := set_gpio_edge_interrupt_mode(pin, "both")
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
   }
 
-  gpio_value_file,err := syscall.Open("/sys/class/gpio/gpio21/value", syscall.O_RDONLY, 0)
-  if err != nil {
-    fmt.Println(os.Stderr, err)
-    os.Exit(1)
-  }
-  defer syscall.Close(gpio_value_file)
-
-  err = consume_event(gpio_value_file)
-  if err != nil {
-    fmt.Println(os.Stderr, err)
-    os.Exit(1)
+  var gpio_pin_value_files [gpio_pin_max_number-gpio_pin_min_number]int
+  for pin := gpio_pin_min_number; pin <= gpio_pin_max_number; pin++ {
+    gpio_value_file,err := syscall.Open(fmt.Sprintf("/sys/class/gpio/gpio%d/value", pin), syscall.O_RDONLY, 0)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
+    err = consume_event(gpio_value_file)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
+    gpio_pin_value_files[pin-gpio_pin_min_number] = gpio_value_file
+    defer syscall.Close(gpio_value_file)
   }
 
   // Setup EPoll
-  epoll_fd,err := syscall.EpollCreate(1)
+  epoll_fd,err := syscall.EpollCreate(gpio_pin_max_number-gpio_pin_min_number)
   if err != nil {
     fmt.Println(os.Stderr, err)
     os.Exit(1)
   }
-  epoll_event := syscall.EpollEvent{Events: syscall.EPOLLPRI, Fd: (int32)(gpio_value_file)}
-  err = syscall.EpollCtl(epoll_fd, syscall.EPOLL_CTL_ADD, gpio_value_file, &epoll_event)
-  if err != nil {
-    fmt.Println(os.Stderr, err)
-    os.Exit(1)
+  for gpio_value_file := range gpio_pin_value_files {
+    epoll_event := syscall.EpollEvent{Events: syscall.EPOLLPRI, Fd: (int32)(gpio_value_file)}
+    err = syscall.EpollCtl(epoll_fd, syscall.EPOLL_CTL_ADD, gpio_value_file, &epoll_event)
+    if err != nil {
+      fmt.Println(os.Stderr, err)
+      os.Exit(1)
+    }
   }
 
   fmt.Println("Listening for events..")
-  times,errors := produce_events(epoll_fd, epoll_event, gpio_value_file)
+  times,errors := produce_events(epoll_fd)
   loop:
   for {
     select {
